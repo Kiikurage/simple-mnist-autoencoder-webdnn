@@ -31,6 +31,8 @@ def main():
     model.summary()
     model.compile(loss="mean_squared_error", optimizer="sgd", metrics=["accuracy"])
     model.fit(x_train, x_train, batch_size=10, epochs=2, verbose=1)
+    model.save("autoencoder.h5")
+    model.save_weights("weights_ac.h5")
 
 def load_data():
     pass
