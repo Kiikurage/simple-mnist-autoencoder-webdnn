@@ -9,62 +9,89 @@ import numpy as np
 import chainer
 import chainer.functions as F
 import chainer.links as L
+from chainer import reporter
 from chainer import training
 from chainer.training import extensions
 
 class AutoEncoder(chainer.Chain):
-    def __init__(self):
+    def __init__(self, loss_func):
+        self.loss_func = loss_func
         super(AutoEncoder, self).__init__()
 
         with self.init_scope():
             self.conv1 = L.Convolution2D(1, 8, ksize=3)
             self.deconv1 = L.Deconvolution2D(8, 1, ksize=3)
 
-    def __call__(self, x):
+    def predict(self, x):
         h = self.conv1(x)
         h = F.relu(h)
         h = self.deconv1(h)
         y = F.sigmoid(h)
         return y
 
+    def __call__(self, x, t):
+        y = self.predict(x)
+        loss = self.loss_func(y, t)
+        reporter.report({'loss': loss})
+        return loss
+
 class MyMnist(chainer.dataset.DatasetMixin):
     def __init__(self):
         train, test = chainer.datasets.get_mnist(ndim=3)
         self.train = train
         self.test = test
+        self.pos = -1
+        
     def __len__(self):
         return len(self.train)
     
     def __getitem__(self, i):
-        #import pdb; pdb.set_trace()
         return self.train[i][0]
 
-class MyAutoEncoderUpdater(chainer.training.StandardUpdater):
-    def __init__(self, *args, **kwargs):
-        self.model = kwargs.pop('model')
-        self.device = kwargs.pop('device')
-        self.img_size = 28
-        super(MyAutoEncoderUpdater, self).__init__(*args, device=self.device, *kwargs)
+    def next(self):
+        self.pos += 1
+        ret = self[self.pos]
+        return ret
 
-    def update_core(self):
-        model = self.model
-        xp = model.xp
-        opt = self.get_optimizer('main')
-        batch = self.get_iterator('main').next()
-        batchsize = len(batch)
-        x_in = xp.zeros((batchsize, 1, self.img_size, self.img_size)).astype("f")
-        t_out = xp.zeros((batchsize, 1, self.img_size, self.img_size)).astype("f")
-        for i in range(batchsize):
-            x_in[i,:] = xp.asarray(batch[i])
-            t_out[i,:] = xp.asarray(batch[i])
-        x_in = chainer.Variable(x_in)
-        x_out = model(x_in)
-        import pdb; pdb.set_trace()
-        r = opt.update(self.loss_func, model, x_out, t_out)
-        x_in.unchain_backward()
-        x_out.unchain_backward()
-        return
-    
+    def reset(self):
+        self.pos = -1
+      
+class MnistAEIterator(chainer.dataset.Iterator):
+    def __init__(self, dataset, batch_size):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.pos = 0
+        self.epoch = 0
+
+    def fetch(self):
+        self.pos += self.batch_size
+        data = []
+        try:
+            for i in range(self.batch_size):
+                data.append(self.dataset.next())
+        except:
+            self.pos = 0
+            self.epoch += 1
+            self.dataset.reset()
+        return data
+
+    def __next__(self):
+        data = self.fetch()
+        if len(data) <= 0:
+            data = self.fetch()
+        data = np.asarray(data)
+        return data, data
+
+    @property
+    def epoch_detail(self):
+        ed = self.epoch + float(self.pos / len(self.dataset))
+        return ed
+
+def convert(batch, device):
+    if device >= 0:
+        batch = cuda.to_gpu(batch)
+    return batch
+
 def arg():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batchsize', type=int, default=10)
@@ -76,15 +103,16 @@ def arg():
 def main():
     args = arg()
     my_mnist = MyMnist()
-    train_iter = chainer.iterators.SerialIterator(my_mnist, args.batchsize)
+    train_iter = MnistAEIterator(my_mnist, args.batchsize)
     #import pdb; pdb.set_trace()
-    model = AutoEncoder()
+    model = AutoEncoder(F.mean_squared_error)
     optimizer = chainer.optimizers.MomentumSGD()
     optimizer.setup(model)
-    updater = MyAutoEncoderUpdater(train_iter, optimizer, loss_func=F.mean_squared_error, device=args.gpu, model=model)
+    updater = training.StandardUpdater(train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())
-    trainer.extend(extensions.PrintReport(['epoch', 'main/loss']))
+    trainer.extend(extensions.PrintReport(['epoch', 'main/loss', 'loss']))
+    trainer.extend(extensions.ProgressBar())
     trainer.run()
 
 if __name__ == '__main__':
