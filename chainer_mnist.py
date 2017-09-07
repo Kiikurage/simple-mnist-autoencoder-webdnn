@@ -114,6 +114,7 @@ def main():
     trainer.extend(extensions.PrintReport(['epoch', 'main/loss', 'loss']))
     trainer.extend(extensions.ProgressBar())
     trainer.run()
+    chainer.serializers.save_npz("model.npz", model)
 
 if __name__ == '__main__':
     main()
