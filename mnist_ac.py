@@ -34,8 +34,5 @@ def main():
     model.save("autoencoder.h5")
     model.save_weights("weights_ac.h5")
 
-def load_data():
-    pass
-
 if __name__ == '__main__':
     main()
