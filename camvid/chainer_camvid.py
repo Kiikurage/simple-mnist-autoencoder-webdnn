@@ -25,8 +25,7 @@ class MyCamVidDataset(CamVidDataset):
             raise IndexError('index too large')
         img_filename, _ = self.filenames[i]
         img = read_image(img_filename, color=True)
-        img -= 127.5
-        img /= 127.5
+        img /= 255.0
         return img
 
     def next(self):
@@ -110,7 +109,7 @@ def main():
     parser.add_argument('--gpu', '-g', type=int, default=-1)
     parser.add_argument('--batchsize', type=int, default=12)
     parser.add_argument('--out', type=str, default='out')
-    parser.add_argument('--epoch', type=int, default=10)
+    parser.add_argument('--epoch', type=int, default=5)
     args = parser.parse_args()
 
     # trigger
