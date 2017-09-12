@@ -63,7 +63,7 @@ class CamVidAutoEncoder(chainer.Chain):
 
     def __call__(self, x, t):
         y = self.predict(x)
-        loss = self.loss_func(x, t)
+        loss = self.loss_func(y, t)
         reporter.report({'loss': loss})
         return loss
 
@@ -107,10 +107,10 @@ def convert(batch, device):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', type=int, default=-1)
+    parser.add_argument('--gpu', '-g', type=int, default=-1)
     parser.add_argument('--batchsize', type=int, default=12)
     parser.add_argument('--out', type=str, default='out')
-    parser.add_argument('--epoch', type=int, default=100)
+    parser.add_argument('--epoch', type=int, default=10)
     args = parser.parse_args()
 
     # trigger
