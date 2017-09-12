@@ -15,6 +15,8 @@ from chainercv.datasets import CamVidDataset
 from chainercv.utils import read_image
 from chainer import cuda
 
+from net import CamVidAutoEncoder
+
 class MyCamVidDataset(CamVidDataset):
     def __init__(self, **kwargs):
         self.pos = -1
@@ -34,37 +36,6 @@ class MyCamVidDataset(CamVidDataset):
 
     def reset(self):
         self.pos = -1
-
-class CamVidAutoEncoder(chainer.Chain):
-    def __init__(self, loss_func):
-        self.channel = 3
-        self.width = 360
-        self.height = 480
-        self.loss_func = loss_func
-        super(CamVidAutoEncoder, self).__init__()
-
-        with self.init_scope():
-            self.conv1 = L.Convolution2D(self.channel, 16, ksize=3)
-            self.conv2 = L.Convolution2D(16, 32, ksize=3)
-            self.deconv1 = L.Deconvolution2D(32, 16, ksize=3)
-            self.deconv2 = L.Deconvolution2D(16, self.channel, ksize=3)
-
-    def predict(self, x):
-        h = self.conv1(x)
-        h = F.relu(h)
-        h = self.conv2(h)
-        h = F.relu(h)
-        h = self.deconv1(h)
-        h = F.relu(h)
-        h = self.deconv2(h)
-        h = F.tanh(h)
-        return h
-
-    def __call__(self, x, t):
-        y = self.predict(x)
-        loss = self.loss_func(y, t)
-        reporter.report({'loss': loss})
-        return loss
 
 class CamViidAEIterator(chainer.dataset.Iterator):
     def __init__(self, dataset, batch_size):
