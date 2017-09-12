@@ -16,24 +16,30 @@
 			console.log("start");
 			// var img = WebDNN.Image.loadImageByUrl("0001TP_006690.png");
 			// var img = WebDNN.Image.loadImageByUrl('0001TP_006690.png', { scale: [255, 255, 255] }).then(function(ret) {
-			var img = WebDNN.Image.getImageArray(img, {
-				scale: [256, 256, 256]
-			});
-			console.log(img);
-			WebDNN.load(path).then(
-				function (runner) {
-					runner.getInputViews()[0].set(img);
-					var y = runner.getOutputViews()[0];
-					runner.run().then(function () {
-						var ret = y.toActual();
-						// WebDNN.Image.setImageArrayToCanvas(img, 480, 360, document.getElementById('input'), { scale: [1, 1, 1] });
-						WebDNN.Image.setImageArrayToCanvas(ret, 480, 360, document.getElementById('output'), {
-							scale: [1, 1, 1]
+			WebDNN.Image.getImageArray(img, {
+				dstH: 480,
+				dstW: 360,
+				scale: [256, 256, 256],
+				order: WebDNN.Image.Order.CHW
+			}).then(function (img) {
+				console.log(img);
+				WebDNN.load(path).then(
+					function (runner) {
+						runner.getInputViews()[0].set(img);
+						var y = runner.getOutputViews()[0];
+						runner.run().then(function () {
+							var ret = y.toActual();
+							// WebDNN.Image.setImageArrayToCanvas(img, 480, 360, document.getElementById('input'), { scale: [1, 1, 1] });
+							WebDNN.Image.setImageArrayToCanvas(ret, originalGeneratedImageW, originalGeneratedImageH, document.getElementById(
+								'output'), {
+								scale: [256, 256, 256],
+								order: WebDNN.Image.Order.CHW
+							});
+							console.log(ret);
+							console.log("end");
 						});
-						console.log(ret);
-						console.log("end");
 					});
-				});
+			});
 		}
 	</script>
 </head>
