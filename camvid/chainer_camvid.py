@@ -16,6 +16,7 @@ from chainercv.utils import read_image
 
 class MyCamVidDataset(CamVidDataset):
     def __init__(self, **kwargs):
+        self.pos = -1
         super(MyCamVidDataset, self).__init__(**kwargs)
 
     def get_example(self, i):
@@ -25,7 +26,14 @@ class MyCamVidDataset(CamVidDataset):
         img = read_image(img_filename, color=True)
         img -= 127.5
         img /= 127.5
-        return img, img
+        return img
+
+    def next(self):
+        self.pos += 1
+        return self.get_example(self.pos)
+
+    def reset(self):
+        self.pos = -1
 
 class CamVidAutoEncoder(chainer.Chain):
     def __init__(self, loss_func):
@@ -51,6 +59,43 @@ class CamVidAutoEncoder(chainer.Chain):
         h = self.deconv2(h)
         h = F.tanh(h)
         return h
+
+    def __call__(self, x, t):
+        y = self.predict(x)
+        loss = self.loss_func(x, t)
+        reporter.report({'loss': loss})
+        return loss
+
+class CamViidAEIterator(chainer.dataset.Iterator):
+    def __init__(self, dataset, batch_size):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.pos = -batch_size
+        self.epoch = 0
+
+    def fetch(self):
+        self.pos += self.batch_size
+        data = []
+        try:
+            for i in range(self.batch_size):
+                data.append(self.dataset.next())
+        except:
+            self.pos = 0
+            self.epoch += 1
+            self.dataset.reset()
+        return data
+
+    def __next__(self):
+        data = self.fetch()
+        if len(data) <= 0:
+            data = self.fetch()
+        data = np.asarray(data)
+        return data, data
+
+    @property
+    def epoch_detail(self):
+        ed = self.epoch + float(self.pos / len(self.dataset))
+        return ed
 
 def main():
     parser = argparse.ArgumentParser()
