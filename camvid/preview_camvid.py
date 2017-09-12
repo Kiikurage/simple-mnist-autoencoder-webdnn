@@ -19,7 +19,6 @@ def main():
     args = arg()
     data = CamVidDataset(split=args.type)
     img = data[args.index][0]
-    import pdb; pdb.set_trace()
     img /= 255.0
     #img = np.clip(img, -1.0, 1.0)
     import matplotlib.pyplot as plt
