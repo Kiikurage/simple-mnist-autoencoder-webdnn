@@ -1,0 +1,49 @@
+<!DOCTYPE>
+<!-- -*- coding: utf-8 -*- -->
+<html>
+    <head>
+	<script src="./webdnn.js"></script>
+	<script>
+	 'use strict';
+	 function start() {
+	     var path = '../out';
+	     var img = document.getElementById('camvid');
+	     var inp = document.getElementById('input');
+	     var ctx = inp.getContext('2d');
+	     ctx.drawImage(img, 0, 0);
+	     console.log("start");
+	     // var img = WebDNN.Image.loadImageByUrl("0001TP_006690.png");
+	     // var img = WebDNN.Image.loadImageByUrl('0001TP_006690.png', { scale: [255, 255, 255] }).then(function(ret) {
+	     var img = WebDNN.Image.getImageArray(img, { scale: [256, 256, 256] });
+	     console.log(img);
+	     WebDNN.load(path).then(
+		 function(runner) {
+		     runner.getInputViews()[0].set(img);
+		     var y = runner.getOutputViews()[0];
+		     runner.run().then( function() {
+			 var ret = y.toActual();
+			 // WebDNN.Image.setImageArrayToCanvas(img, 480, 360, document.getElementById('input'), { scale: [1, 1, 1] });
+			 WebDNN.Image.setImageArrayToCanvas(ret, 480, 360, document.getElementById('output'), { scale: [1, 1, 1] });
+			 console.log(ret);
+			 console.log("end");
+		     });
+		 });
+	 }
+
+	</script>
+    </head>
+    <body>
+	<div onClick="start()">mnist test</div>
+	<div>
+		<h4>Input</h4>
+		<canvas width=480 height=360 id="input"></canvas>
+	</div>
+	<div>
+		<h4>Output</h4>
+		<canvas width=480 height=360 id="output"></canvas>
+	</div>
+	<div>
+	    <img id="camvid" src="0001TP_006690.png">
+	</div>
+    </body>
+</html>
