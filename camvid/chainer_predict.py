@@ -40,7 +40,7 @@ def main():
     plt.subplot(1,2,1)
     plt.imshow(img1)
     y = y.data.reshape(ch, w, h)
-    y = y.transpose(1, 2, 0)
+    y = y.transpose(1, 2, 0).clip(0, 1.0)
     plt.subplot(1,2,2)
     plt.imshow(y)
     plt.show()
